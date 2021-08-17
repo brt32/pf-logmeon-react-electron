@@ -1,5 +1,5 @@
 {
-  "name": "simple-electron-react",
+  "name": "pf-logmeon-react-electron",
   "productName": "React Electron App",
   "version": "1.0.0",
   "description": "Simple boilerplate for building Electron apps with React",
@@ -21,8 +21,13 @@
     "postpackage": "electron-packager ./ --out=./release-builds"
   },
   "dependencies": {
+    "bootstrap": "4.6.0",
+    "moment": "^2.29.1",
+    "mongoose": "^5.13.7",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-bootstrap": "^1.6.1",
+    "react-dom": "^16.13.1",
+    "react-moment": "^1.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
