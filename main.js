@@ -1,14 +1,16 @@
 const path = require("path");
 const url = require("url");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const Log = require("./models/Log");
 const connectDB = require("./config/db");
 
 connectDB();
 
 let mainWindow;
+let aboutWindow;
 
 let isDev = false;
+const isMac = process.platform === "darwin" ? true : false;
 
 if (
   process.env.NODE_ENV !== undefined &&
@@ -68,9 +70,66 @@ function createMainWindow() {
   mainWindow.on("closed", () => (mainWindow = null));
 }
 
-app.on("ready", createMainWindow);
+function createAboutWindow() {
+  aboutWindow = new BrowserWindow({
+    title: "About Application",
+    width: 300,
+    height: 400,
+    resizable: false,
+    backgroundColor: "white",
+    autoHideMenuBar: true,
+    parent: mainWindow,
+    modal: true,
+  });
+  aboutWindow.loadFile("./about.html");
+}
 
-ipcMain.on("logs:load", sendLogs);
+app.on("ready", () => {
+  createMainWindow();
+  const mainMenu = Menu.buildFromTemplate(menu);
+  Menu.setApplicationMenu(mainMenu);
+});
+
+const menu = [
+  ...(isMac ? [{ role: "appMenu" }] : []),
+  {
+    role: "fileMenu",
+  },
+  {
+    role: "editMenu",
+  },
+  {
+    label: "Logs",
+    submenu: [
+      {
+        label: "Clear Logs",
+        click: () => clearLogs(),
+      },
+    ],
+  },
+  {
+    label: "Help",
+    submenu: [
+      {
+        label: "About",
+        click: createAboutWindow,
+      },
+    ],
+  },
+  ...(isDev
+    ? [
+        {
+          label: "Developer",
+          submenu: [
+            { role: "reload" },
+            { role: "forcereload" },
+            { type: "separator" },
+            { role: "toggledevtools" },
+          ],
+        },
+      ]
+    : []),
+];
 
 async function sendLogs() {
   try {
@@ -80,6 +139,35 @@ async function sendLogs() {
     console.log(err);
   }
 }
+
+async function clearLogs() {
+  try {
+    await Log.deleteMany({});
+    mainWindow.webContents.send("logs:clear");
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+ipcMain.on("logs:load", sendLogs);
+
+ipcMain.on("logs:add", async (e, item) => {
+  try {
+    await Log.create(item);
+    sendLogs();
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+ipcMain.on("logs:delete", async (e, id) => {
+  try {
+    await Log.findOneAndDelete({ _id: id });
+    sendLogs();
+  } catch (err) {
+    console.log(err);
+  }
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
